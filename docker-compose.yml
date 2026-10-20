@@ -1,0 +1,15 @@
+# docker compose up --build   (after `make data data-ulb train` on the host)
+services:
+  api:
+    build: .
+    environment: [FRAUD_DATASET=ieee]
+    volumes: [./models:/app/models:ro, ./data:/data]
+    ports: ["8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+  dashboard:
+    build: .
+    command: ["streamlit", "run", "app/dashboard.py", "--server.address=0.0.0.0", "--server.port=8501"]
+    volumes: [./models:/app/models:ro, ./data:/data]
+    ports: ["8501:8501"]

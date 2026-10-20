@@ -1,7 +1,7 @@
 PY ?= python3
 export PYTHONPATH := src
 
-.PHONY: install test data data-ulb report train serve dashboard
+.PHONY: install test data data-ulb report train serve dashboard drift docker
 
 install:
 	$(PY) -m pip install -e ".[dev]"
@@ -30,3 +30,9 @@ serve:           ## scoring API on :8000 (DATASET=ieee|ulb)
 
 dashboard:       ## analyst alert queue on :8501
 	$(PY) -m streamlit run app/dashboard.py
+
+drift:           ## BATCH=recent.parquet DATASET=ieee|ulb; exits 1 on drift
+	$(PY) -m fraud.drift --dataset $(or $(DATASET),ieee) --batch $(BATCH)
+
+docker:
+	docker compose up --build

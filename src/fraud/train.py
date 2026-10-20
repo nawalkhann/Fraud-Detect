@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+from dataclasses import asdict
+from datetime import datetime, timezone
 
 import joblib
 import lightgbm as lgb
@@ -80,6 +83,30 @@ def _fmt(df: pd.DataFrame) -> str:
     return df.to_markdown(floatfmt=",.4f")
 
 
+def write_metadata(out_dir, dataset, train_raw, rank, best, no_model, costs: Costs) -> None:
+    """Minimal model registry entry: what was trained, on what, and how well it did."""
+    try:
+        sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=REPO_ROOT,
+                             capture_output=True, text=True, check=True).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        sha = "unknown"
+    meta = {
+        "dataset": dataset,
+        "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "git_sha": sha,
+        "train_rows": len(train_raw),
+        "train_fraud_rate": float(train_raw["isFraud"].mean()),
+        "costs": asdict(costs),
+        "test": {"pr_auc": float(rank.loc[("lightgbm", "test"), "pr_auc"]),
+                 "roc_auc": float(rank.loc[("lightgbm", "test"), "roc_auc"]),
+                 "total_cost": float(best.total_cost), "no_model_cost": float(no_model),
+                 "recall": float(best.recall), "precision": float(best.precision)},
+    }
+    (out_dir / "metadata.json").write_text(json.dumps(meta, indent=2))
+    # reference sample of training traffic, used by fraud.drift to spot shifts in live data
+    train_raw.sample(min(len(train_raw), 50_000), random_state=0).to_parquet(out_dir / "reference.parquet", index=False)
+
+
 def run(cfg: dict, dataset: str, out_root=REPO_ROOT) -> dict:
     costs = Costs.from_config(cfg)
     raw = {s: load_split(cfg, s, dataset=dataset) for s in SPLITS}
@@ -142,6 +169,7 @@ def run(cfg: dict, dataset: str, out_root=REPO_ROOT) -> dict:
     report = out_root / "reports" / f"model_report_{dataset}.md"
     report.write_text("\n".join(lines))
     (out_dir / "thresholds.json").write_text(json.dumps(chosen, indent=2))
+    write_metadata(out_dir, dataset, raw["train"], rank, best, no_model, costs)
     return {"report": str(report), "thresholds": chosen, "test_min_cost": best.to_dict(), "no_model_cost": no_model}
 
 

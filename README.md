@@ -35,8 +35,12 @@ make report                                 # writes reports/data_report_{ieee,u
 make train                                  # writes reports/model_report_{ieee,ulb}.md
 make serve                                  # scoring API: POST /score, GET /health
 make dashboard                              # analyst alert queue
+make drift BATCH=recent.parquet              # drift check, non-zero exit on alert
+make docker                                 # API on :8000 and dashboard on :8501
 make test
 ```
+Each training run writes `models/<dataset>/metadata.json` (git sha, time, costs, test metrics)
+and a reference sample for drift checks. CI runs the tests and builds the image on every push.
 Set `FRAUD_DATA_DIR` to keep the ~1.5 GB of data somewhere other than `./data`.
 
 ## Layout
@@ -49,6 +53,7 @@ src/fraud/cost.py      cost model, vectorised cost curve, cost-optimal threshold
 src/fraud/train.py     LightGBM + logistic baseline, threshold policies, train/valid/test error report
 src/fraud/alerts.py    scorer, per-alert reasons (LightGBM SHAP), queue ranked by expected loss
 src/fraud/api.py       FastAPI scoring service
+src/fraud/drift.py     PSI + score-shift drift check against the training reference (exit 1 on alert)
 app/dashboard.py       Streamlit alert queue: live cost sliders, cost curve, review + decisions (SQLite)
 src/fraud/profile.py   data report: fraud rates, amounts, missingness, drift (PSI)
 tests/                 unit tests on tiny files with the IEEE-CIS column layout

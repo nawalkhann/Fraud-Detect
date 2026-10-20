@@ -68,4 +68,4 @@ def test_psi_detects_shift():
 def test_report_builds(raw_dir):
     df = add_time_columns(load_joined(raw_dir), "2017-12-01")
     report = build_report(time_split(df, 120, 152))
-    assert "# IEEE-CIS data report" in report and "Drift" in report
+    assert "IEEE-CIS" in report and "Drift" in report

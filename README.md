@@ -1,8 +1,18 @@
 # Fraud Detect
 
-Cost-sensitive fraud detection on the **IEEE-CIS Fraud Detection** dataset (real e-commerce
-transactions from Vesta), with a decision threshold picked by business cost and an alert
+Cost-sensitive fraud detection on two real, labelled transaction datasets, with a decision threshold picked by business cost and an alert
 queue an analyst can work through.
+
+## Data
+| Dataset | What it is | Role |
+|---|---|---|
+| **IEEE-CIS** | 590k real e-commerce transactions from Vesta, ~6 months, 3.5% fraud, readable features | Main model, drives the alert queue and per-alert reasons |
+| **ULB** | 285k real European card transactions (Sept 2013), 2 days, 0.17% fraud, PCA features | Second benchmark: does the cost-based threshold hold on a different fraud profile? |
+
+The columns differ, so each gets its own model; both are mapped to the same core names
+(`TransactionID`, `TransactionDT`, `TransactionAmt`, `isFraud`) so the cost, threshold and
+dashboard code is shared. Kaggle's IEEE-CIS test file has no labels, so the test set for each
+dataset is its final, held-out time slice.
 
 ## Why this is hard
 - **Imbalance:** about 3.5% of transactions are fraud, so a model that predicts "legit" for everything is 96.5% accurate and useless. We evaluate with PR-AUC and dollars.
@@ -20,7 +30,8 @@ queue an analyst can work through.
 make install
 export KAGGLE_USERNAME=... KAGGLE_KEY=...   # and click "Join Competition" on Kaggle once
 make data                                   # or: make data ZIP=path/to/ieee-fraud-detection.zip
-make report                                 # writes reports/data_report.md
+make data-ulb                               # or: make data-ulb CSV=path/to/creditcard.csv
+make report                                 # writes reports/data_report_{ieee,ulb}.md
 make test
 ```
 Set `FRAUD_DATA_DIR` to keep the ~1.5 GB of data somewhere other than `./data`.
@@ -29,6 +40,7 @@ Set `FRAUD_DATA_DIR` to keep the ~1.5 GB of data somewhere other than `./data`.
 ```
 configs/default.yaml   split days and cost assumptions
 src/fraud/data.py      download, identity join, dtype downcast, out-of-time split
+src/fraud/ulb.py       ULB loader mapped to the shared schema, hourly out-of-time split
 src/fraud/profile.py   data report: fraud rates, amounts, missingness, drift (PSI)
 tests/                 unit tests on tiny files with the IEEE-CIS column layout
 ```

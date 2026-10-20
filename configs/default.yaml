@@ -25,3 +25,14 @@ costs:
   chargeback_fee: 15.0
   review_cost: 5.0
   friction_cost: 0.0
+
+# Second, independent benchmark: ULB / Worldline European card transactions
+# (Sept 2013, 284,807 rows, 492 frauds, V1-V28 are PCA components).
+ulb:
+  kaggle_dataset: mlg-ulb/creditcardfraud
+  reference_date: "2013-09-01"   # only "September 2013" is published; used for display
+  split:                         # the data covers ~48 hours, so cut on hour index
+    train_end_hour: 30           # hours [0, 30)  -> train
+    gap_hours: 0
+    valid_end_hour: 39           # hours [30, 39) -> valid
+                                 # hours [39, 48] -> test

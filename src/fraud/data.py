@@ -79,11 +79,15 @@ def add_time_columns(df: pd.DataFrame, reference_date: str) -> pd.DataFrame:
 
 # --------------------------------------------------------------------------- split
 
-def time_split(df: pd.DataFrame, train_end_day: int, valid_end_day: int, gap_days: int = 0) -> dict[str, pd.DataFrame]:
-    """Out-of-time split so the model is always scored on transactions after the ones it learned from."""
+def time_split(df: pd.DataFrame, train_end_day: int, valid_end_day: int, gap_days: int = 0,
+               column: str = "day") -> dict[str, pd.DataFrame]:
+    """Out-of-time split so the model is always scored on transactions after the ones it learned from.
+
+    `column` is the time unit to cut on: "day" for IEEE-CIS, "hour" for the 2-day ULB set.
+    """
     if not 0 < train_end_day + gap_days < valid_end_day:
         raise ValueError("need 0 < train_end_day + gap_days < valid_end_day")
-    day = df["day"]
+    day = df[column]
     splits = {
         "train": df[day < train_end_day],
         "valid": df[(day >= train_end_day + gap_days) & (day < valid_end_day)],
@@ -106,8 +110,11 @@ def prepare(cfg: dict) -> dict[str, pd.DataFrame]:
     return splits
 
 
-def load_split(cfg: dict, name: str, columns: list[str] | None = None) -> pd.DataFrame:
-    return pd.read_parquet(data_paths(cfg).processed / f"{name}.parquet", columns=columns)
+def load_split(cfg: dict, name: str, columns: list[str] | None = None, dataset: str = "ieee") -> pd.DataFrame:
+    base = data_paths(cfg).processed
+    if dataset != "ieee":
+        base = base / dataset
+    return pd.read_parquet(base / f"{name}.parquet", columns=columns)
 
 
 # --------------------------------------------------------------------------- CLI

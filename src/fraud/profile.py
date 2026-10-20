@@ -1,6 +1,6 @@
 """Data report for the prepared IEEE-CIS splits.
 
-    python -m fraud.profile   # writes reports/data_report.md
+    python -m fraud.profile [--dataset ieee|ulb]   # writes reports/data_report_<dataset>.md
 """
 from __future__ import annotations
 
@@ -38,10 +38,15 @@ def _md(df: pd.DataFrame, floatfmt: str = ".4f") -> str:
     return df.to_markdown(floatfmt=floatfmt)
 
 
-def build_report(splits: dict[str, pd.DataFrame]) -> str:
+TITLES = {"ieee": "IEEE-CIS (Vesta e-commerce)", "ulb": "ULB (European card transactions)"}
+ULB_DRIFT_FEATURES = ["TransactionAmt", "V1", "V3", "V4", "V10", "V12", "V14", "V17"]
+
+
+def build_report(splits: dict[str, pd.DataFrame], dataset: str = "ieee") -> str:
     df = pd.concat([p.assign(split=n) for n, p in splits.items()], ignore_index=True)
     y = df["isFraud"]
-    out: list[str] = ["# IEEE-CIS data report", ""]
+    unit = "hour" if dataset == "ulb" else "day"
+    out: list[str] = [f"# {TITLES[dataset]} data report", ""]
 
     fraud_amt = df.loc[y == 1, "TransactionAmt"].sum()
     out += [
@@ -51,21 +56,24 @@ def build_report(splits: dict[str, pd.DataFrame]) -> str:
         f"(assumed reference date; TransactionDT is relative)",
         f"- Fraud: {int(y.sum()):,} transactions, rate {y.mean():.2%}, "
         f"${fraud_amt:,.0f} of ${df['TransactionAmt'].sum():,.0f} volume ({fraud_amt / df['TransactionAmt'].sum():.2%})",
-        f"- With identity record: {df['has_identity'].mean():.1%} of transactions "
-        f"(fraud rate {y[df['has_identity'] == 1].mean():.2%} vs {y[df['has_identity'] == 0].mean():.2%} without)",
-        "",
     ]
+    if "has_identity" in df:
+        out.append(f"- With identity record: {df['has_identity'].mean():.1%} of transactions "
+                   f"(fraud rate {y[df['has_identity'] == 1].mean():.2%} vs {y[df['has_identity'] == 0].mean():.2%} without)")
+    out.append("")
 
     split_tbl = df.groupby("split", sort=False).agg(
         rows=("isFraud", "size"), frauds=("isFraud", "sum"), fraud_rate=("isFraud", "mean"),
-        first_day=("day", "min"), last_day=("day", "max"),
+        **{f"first_{unit}": (unit, "min"), f"last_{unit}": (unit, "max")},
         fraud_dollars=("TransactionAmt", lambda s: s[df.loc[s.index, "isFraud"] == 1].sum()),
     )
     out += ["## Out-of-time splits", _md(split_tbl), ""]
 
-    monthly = df.groupby(df["event_time"].dt.to_period("M")).agg(
-        rows=("isFraud", "size"), fraud_rate=("isFraud", "mean"))
-    out += ["## Fraud rate by month", _md(monthly), ""]
+    period = df[unit] // 6 * 6 if dataset == "ulb" else df["event_time"].dt.to_period("M")
+    label = "6-hour block" if dataset == "ulb" else "month"
+    over_time = df.groupby(period.rename(label)).agg(
+        rows=("isFraud", "size"), frauds=("isFraud", "sum"), fraud_rate=("isFraud", "mean"))
+    out += [f"## Fraud rate by {label}", _md(over_time), ""]
 
     amt = df.groupby("isFraud")["TransactionAmt"].describe(percentiles=[0.5, 0.95, 0.99])
     amt.index = amt.index.map({0: "legit", 1: "fraud"})
@@ -89,7 +97,7 @@ def build_report(splits: dict[str, pd.DataFrame]) -> str:
     drift = pd.DataFrame(
         [{"feature": f, "psi_train_vs_valid": psi(splits["train"][f], splits["valid"][f]),
           "psi_train_vs_test": psi(splits["train"][f], splits["test"][f])}
-         for f in DRIFT_FEATURES if f in df.columns]).set_index("feature")
+         for f in (ULB_DRIFT_FEATURES if dataset == "ulb" else DRIFT_FEATURES) if f in df.columns]).set_index("feature")
     out += ["## Drift (population stability index)",
             "PSI under 0.1 is stable, 0.1 to 0.25 is a moderate shift, over 0.25 is a large shift.",
             "", _md(drift), ""]
@@ -99,12 +107,13 @@ def build_report(splits: dict[str, pd.DataFrame]) -> str:
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="fraud.profile")
     ap.add_argument("--config")
+    ap.add_argument("--dataset", choices=sorted(TITLES), default="ieee")
     args = ap.parse_args(argv)
     cfg = load_config(args.config)
-    splits = {n: load_split(cfg, n) for n in ("train", "valid", "test")}
-    path = REPO_ROOT / "reports" / "data_report.md"
+    splits = {n: load_split(cfg, n, dataset=args.dataset) for n in ("train", "valid", "test")}
+    path = REPO_ROOT / "reports" / f"data_report_{args.dataset}.md"
     path.parent.mkdir(exist_ok=True)
-    path.write_text(build_report(splits))
+    path.write_text(build_report(splits, args.dataset))
     print(f"wrote {path}")
 
 

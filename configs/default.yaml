@@ -1,0 +1,27 @@
+# Central config for the fraud pipeline. Paths are relative to the repo root
+# unless overridden by the FRAUD_DATA_DIR environment variable.
+
+data:
+  kaggle_competition: ieee-fraud-detection
+  dir: data                      # raw/, interim/, processed/ live under here
+  # TransactionDT is seconds from an undisclosed reference. The community
+  # consensus (Vesta confirmed the data covers ~6 months) is 2017-12-01.
+  reference_date: "2017-12-01"
+
+split:
+  # Out-of-time split on day index (TransactionDT // 86400). The labelled
+  # Kaggle train file spans ~182 days; Kaggle's test file has no labels, so
+  # all evaluation happens on later slices of the labelled data.
+  train_end_day: 120             # days [0, 120)   -> train
+  gap_days: 0                    # optional embargo between train and valid
+  valid_end_day: 152             # days [120, 152) -> valid (threshold tuning)
+                                 # days [152, end) -> test  (final report only)
+
+costs:
+  # Cost of a missed fraud (false negative) = transaction amount * fn_amount_multiplier
+  # plus a fixed chargeback fee. Cost of a false alarm = analyst review cost
+  # plus a customer-friction cost.
+  fn_amount_multiplier: 1.0
+  chargeback_fee: 15.0
+  review_cost: 5.0
+  friction_cost: 0.0

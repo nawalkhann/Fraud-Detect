@@ -1,7 +1,7 @@
 PY ?= python3
 export PYTHONPATH := src
 
-.PHONY: install test data data-ulb report
+.PHONY: install test data data-ulb report train
 
 install:
 	$(PY) -m pip install -e ".[dev]"
@@ -20,3 +20,7 @@ data-ulb:        ## ULB card data (needs Kaggle token, or CSV=path/to/creditcard
 report:
 	$(PY) -m fraud.profile --dataset ieee
 	$(PY) -m fraud.profile --dataset ulb
+
+train:           ## train, tune threshold on valid, report errors on train/valid/test
+	$(PY) -m fraud.train --dataset ieee
+	$(PY) -m fraud.train --dataset ulb

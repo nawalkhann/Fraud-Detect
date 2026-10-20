@@ -32,6 +32,7 @@ export KAGGLE_USERNAME=... KAGGLE_KEY=...   # and click "Join Competition" on Ka
 make data                                   # or: make data ZIP=path/to/ieee-fraud-detection.zip
 make data-ulb                               # or: make data-ulb CSV=path/to/creditcard.csv
 make report                                 # writes reports/data_report_{ieee,ulb}.md
+make train                                  # writes reports/model_report_{ieee,ulb}.md
 make test
 ```
 Set `FRAUD_DATA_DIR` to keep the ~1.5 GB of data somewhere other than `./data`.
@@ -41,6 +42,9 @@ Set `FRAUD_DATA_DIR` to keep the ~1.5 GB of data somewhere other than `./data`.
 configs/default.yaml   split days and cost assumptions
 src/fraud/data.py      download, identity join, dtype downcast, out-of-time split
 src/fraud/ulb.py       ULB loader mapped to the shared schema, hourly out-of-time split
+src/fraud/features.py  features fitted on train only (frequency, customer-id proxy, amount vs history)
+src/fraud/cost.py      cost model, vectorised cost curve, cost-optimal threshold
+src/fraud/train.py     LightGBM + logistic baseline, threshold policies, train/valid/test error report
 src/fraud/profile.py   data report: fraud rates, amounts, missingness, drift (PSI)
 tests/                 unit tests on tiny files with the IEEE-CIS column layout
 ```

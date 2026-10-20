@@ -33,6 +33,8 @@ make data                                   # or: make data ZIP=path/to/ieee-fra
 make data-ulb                               # or: make data-ulb CSV=path/to/creditcard.csv
 make report                                 # writes reports/data_report_{ieee,ulb}.md
 make train                                  # writes reports/model_report_{ieee,ulb}.md
+make serve                                  # scoring API: POST /score, GET /health
+make dashboard                              # analyst alert queue
 make test
 ```
 Set `FRAUD_DATA_DIR` to keep the ~1.5 GB of data somewhere other than `./data`.
@@ -45,6 +47,9 @@ src/fraud/ulb.py       ULB loader mapped to the shared schema, hourly out-of-tim
 src/fraud/features.py  features fitted on train only (frequency, customer-id proxy, amount vs history)
 src/fraud/cost.py      cost model, vectorised cost curve, cost-optimal threshold
 src/fraud/train.py     LightGBM + logistic baseline, threshold policies, train/valid/test error report
+src/fraud/alerts.py    scorer, per-alert reasons (LightGBM SHAP), queue ranked by expected loss
+src/fraud/api.py       FastAPI scoring service
+app/dashboard.py       Streamlit alert queue: live cost sliders, cost curve, review + decisions (SQLite)
 src/fraud/profile.py   data report: fraud rates, amounts, missingness, drift (PSI)
 tests/                 unit tests on tiny files with the IEEE-CIS column layout
 ```

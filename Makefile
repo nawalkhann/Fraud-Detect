@@ -1,7 +1,7 @@
 PY ?= python3
 export PYTHONPATH := src
 
-.PHONY: install test data data-ulb report train
+.PHONY: install test data data-ulb report train serve dashboard
 
 install:
 	$(PY) -m pip install -e ".[dev]"
@@ -24,3 +24,9 @@ report:
 train:           ## train, tune threshold on valid, report errors on train/valid/test
 	$(PY) -m fraud.train --dataset ieee
 	$(PY) -m fraud.train --dataset ulb
+
+serve:           ## scoring API on :8000 (DATASET=ieee|ulb)
+	FRAUD_DATASET=$(or $(DATASET),ieee) $(PY) -m uvicorn fraud.api:app --port 8000
+
+dashboard:       ## analyst alert queue on :8501
+	$(PY) -m streamlit run app/dashboard.py

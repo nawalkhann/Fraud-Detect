@@ -13,6 +13,8 @@ UID_AGG_COLUMNS = ["TransactionAmt", "dist1", "C13", "D15"]
 
 def _base_features(df: pd.DataFrame, dataset: str) -> pd.DataFrame:
     out = df.copy()
+    if "day" not in out:  # raw API payloads only carry TransactionDT
+        out["day"] = out["TransactionDT"] // 86_400
     amt = out["TransactionAmt"].astype(float)
     out["amt_log"] = np.log1p(amt)
     out["amt_cents"] = (amt - np.floor(amt)).round(2)
@@ -21,7 +23,7 @@ def _base_features(df: pd.DataFrame, dataset: str) -> pd.DataFrame:
         out["weekday"] = (out["TransactionDT"] // 86_400 % 7).astype(np.int8)
         # D1 is "days since card first seen"; day - D1 is a stable card start date. Together with
         # card1 and addr1 it approximates a customer id, the strongest signal in this data.
-        if "D1" in out:
+        if {"D1", "card1", "addr1"} <= set(out.columns):
             out["D1n"] = out["day"] - out["D1"]
             out["uid"] = (out["card1"].astype(str) + "_" + out["addr1"].astype(str) + "_"
                           + out["D1n"].astype(str)).astype("category")
@@ -53,16 +55,20 @@ class FeatureBuilder:
         return self
 
     def transform(self, df: pd.DataFrame) -> pd.DataFrame:
-        return self._transform(_base_features(df, self.dataset))[self.columns_]
+        # reindex so payloads with missing optional columns (e.g. no identity data) still score
+        return self._transform(_base_features(df, self.dataset)).reindex(columns=self.columns_)
 
     def _transform(self, df: pd.DataFrame) -> pd.DataFrame:
         for col, counts in self.freq_.items():
+            if col not in df:
+                df[col] = pd.NA
             df[f"{col}_freq"] = df[col].astype("string").map(counts).fillna(0).astype(np.float32)
-        if self.uid_aggs_ is not None:
+        if self.uid_aggs_ is not None and "uid" in df:
             df = df.join(self.uid_aggs_, on="uid")
             df["amt_vs_uid_mean"] = df["TransactionAmt"] / df["uid_TransactionAmt_mean"]
         for col, cats in self.categories_.items():
-            df[col] = pd.Categorical(df[col], categories=cats)
+            values = df[col].astype(object) if col in df else [None] * len(df)
+            df[col] = pd.Categorical(values, categories=cats)
         return df.drop(columns=[c for c in ID_COLUMNS + ["uid", "D1n"] if c in df])
 
 

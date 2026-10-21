@@ -327,8 +327,9 @@ analysts must review, how many frauds are caught and what it all costs.</p>
 <h2>How to read this</h2>
 <p>A low cut-off alerts on almost everything, so review cost dominates. A high cut-off alerts on almost nothing, so missed fraud
 dominates. The cheapest single cut-off sits in between, and it is usually far below 0.5 because a missed fraud costs much more
-than a review. The amount-aware expected-loss rule beats every single cut-off on this data because it uses a lower bar for larger
-transactions. Read the full reasoning in <a href="/guides/choosing-a-fraud-threshold-by-cost">choosing a fraud threshold by cost</a>.</p>
+than a review. On IEEE-CIS the amount-aware expected-loss rule beats every single cut-off
+because it uses a lower bar for larger transactions. On the small ULB set a few cut-offs come out slightly cheaper on test, within
+the noise of 89 frauds. Read the full reasoning in <a href="/guides/choosing-a-fraud-threshold-by-cost">choosing a fraud threshold by cost</a>.</p>
 <p>Costs: missed fraud = amount + $15 chargeback, alert = $5 review. The curve is computed on the IEEE-CIS last month (days 152 to 182)
 and the ULB last 9 hours.</p>
 <script>

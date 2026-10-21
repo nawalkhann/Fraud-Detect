@@ -74,3 +74,19 @@ def best_threshold(y: np.ndarray, p: np.ndarray, amount: np.ndarray, costs: Cost
 def expected_loss(p: np.ndarray, amount: np.ndarray, costs: Costs) -> np.ndarray:
     """Expected cost of letting a transaction through; used to rank the alert queue."""
     return p * costs.miss_cost(amount)
+
+
+def flag_by_expected_loss(p: np.ndarray, amount: np.ndarray, costs: Costs) -> np.ndarray:
+    """Amount-aware rule: alert when letting it through costs more, in expectation, than reviewing it.
+
+    Pass: p * (amount * multiplier + chargeback).  Alert: review + (1 - p) * friction.
+    No parameter is tuned, so with calibrated probabilities it carries over to new data, and a
+    $2,000 transaction gets an alert at a far lower probability than a $5 one.
+    """
+    return p * costs.miss_cost(amount) > costs.review_cost + (1 - p) * costs.friction_cost
+
+
+def decide(p: np.ndarray, amount: np.ndarray, costs: Costs, policy: str, thresholds: dict) -> np.ndarray:
+    if policy == "expected_loss":
+        return flag_by_expected_loss(p, amount, costs)
+    return p >= thresholds[policy]

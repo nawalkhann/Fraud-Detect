@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from fraud.config import REPO_ROOT
-from fraud.cost import Costs, expected_loss
+from fraud.cost import Costs, decide, expected_loss
 from fraud.features import FeatureBuilder
 
 DISPLAY_COLUMNS = {
@@ -39,6 +39,13 @@ class Scorer:
         thresholds = json.loads((d / "thresholds.json").read_text())[model_name]
         return cls(dataset, bundle["model"], bundle["features"], thresholds)
 
+    @property
+    def policy(self) -> str:
+        return self.thresholds.get("production_policy", "min_cost")
+
+    def decide(self, p: np.ndarray, amount: np.ndarray, costs: Costs) -> np.ndarray:
+        return decide(p, amount, costs, self.policy, self.thresholds)
+
     def score(self, raw: pd.DataFrame) -> np.ndarray:
         return self.model.predict_proba(self.features.transform(raw))[:, 1]
 
@@ -61,7 +68,7 @@ def _jsonable(v):
     return v.item() if hasattr(v, "item") else (v if isinstance(v, (int, float, str)) else str(v))
 
 
-def build_queue(raw: pd.DataFrame, p: np.ndarray, threshold: float, costs: Costs, dataset: str) -> pd.DataFrame:
+def build_queue(raw: pd.DataFrame, p: np.ndarray, flagged: np.ndarray, costs: Costs, dataset: str) -> pd.DataFrame:
     """Flagged transactions ranked by expected loss (probability x what a miss would cost)."""
     cols = [c for c in DISPLAY_COLUMNS[dataset] if c in raw]
     q = raw[cols].copy()
@@ -69,6 +76,6 @@ def build_queue(raw: pd.DataFrame, p: np.ndarray, threshold: float, costs: Costs
     q["expected_loss"] = expected_loss(p, raw["TransactionAmt"].to_numpy(dtype=float), costs)
     if "isFraud" in raw:
         q["actual_fraud"] = raw["isFraud"].to_numpy()
-    q = q[p >= threshold].sort_values("expected_loss", ascending=False)
+    q = q[flagged].sort_values("expected_loss", ascending=False)
     q.insert(0, "priority", np.arange(1, len(q) + 1))
     return q.reset_index(drop=True)

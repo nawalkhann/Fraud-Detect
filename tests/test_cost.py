@@ -1,6 +1,6 @@
 import numpy as np
 
-from fraud.cost import Costs, best_threshold, cost_curve, outcome
+from fraud.cost import Costs, best_threshold, cost_curve, flag_by_expected_loss, outcome
 
 COSTS = Costs(fn_amount_multiplier=1.0, chargeback_fee=15.0, review_cost=5.0, friction_cost=2.0)
 
@@ -33,3 +33,11 @@ def test_cheap_reviews_lower_the_threshold():
     cheap = best_threshold(y, p, amt, Costs(review_cost=1.0))
     pricey = best_threshold(y, p, amt, Costs(review_cost=50.0))
     assert cheap < pricey
+
+
+def test_expected_loss_rule_alerts_big_tickets_at_lower_probability():
+    c = Costs(chargeback_fee=15.0, review_cost=5.0)
+    p = np.array([0.01, 0.01, 0.3])
+    amt = np.array([2000.0, 5.0, 5.0])
+    # 0.01 * 2015 = 20 > 5 -> alert; 0.01 * 20 = 0.2 -> pass; 0.3 * 20 = 6 > 5 -> alert
+    assert flag_by_expected_loss(p, amt, c).tolist() == [True, False, True]

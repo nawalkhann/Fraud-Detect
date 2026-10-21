@@ -3,7 +3,7 @@
     uvicorn fraud.api:app --port 8000          # FRAUD_DATASET=ieee|ulb (default ieee)
 
 POST /score with {"transactions": [{...raw columns...}]} returns a probability, the
-cost-optimal decision, expected loss and the top reasons for each transaction.
+cost-based alert decision, expected loss and the top reasons for each transaction.
 """
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def costs() -> Costs:
 @app.get("/health")
 def health() -> dict:
     s = scorer()
-    return {"status": "ok", "dataset": s.dataset, "threshold": s.thresholds["min_cost"]}
+    return {"status": "ok", "dataset": s.dataset, "policy": s.policy}
 
 
 @app.post("/score")
@@ -52,11 +52,12 @@ def score(req: ScoreRequest) -> dict:
         if col in raw:
             raw[col] = pd.Categorical(raw[col], categories=cats)
     p = s.score(raw)
-    t = s.thresholds["min_cost"]
-    el = expected_loss(p, raw["TransactionAmt"].to_numpy(dtype=float), costs())
+    amount = raw["TransactionAmt"].to_numpy(dtype=float)
+    alert = s.decide(p, amount, costs())
+    el = expected_loss(p, amount, costs())
     reasons = s.reasons(raw)
     ids = raw["TransactionID"].tolist() if "TransactionID" in raw else list(range(len(raw)))
-    return {"threshold": t, "results": [
-        {"TransactionID": i, "fraud_probability": round(float(pi), 6), "alert": bool(pi >= t),
+    return {"policy": s.policy, "results": [
+        {"TransactionID": i, "fraud_probability": round(float(pi), 6), "alert": bool(a),
          "expected_loss": round(float(e), 2), "reasons": r}
-        for i, pi, e, r in zip(ids, p, el, reasons)]}
+        for i, pi, a, e, r in zip(ids, p, alert, el, reasons)]}

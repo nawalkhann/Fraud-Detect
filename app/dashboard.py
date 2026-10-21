@@ -2,8 +2,7 @@
 
     streamlit run app/dashboard.py
 
-Scores the held-out test month, picks the threshold that minimises cost on the validation
-month (live, from the cost sliders), and lists alerts ranked by expected loss. Analyst
+Scores the held-out test month, applies the cost-based alert rule (live, from the cost sliders), and lists alerts ranked by expected loss. Analyst
 decisions are stored in SQLite next to the data so they survive restarts.
 """
 from __future__ import annotations
@@ -18,7 +17,7 @@ import streamlit as st
 
 from fraud.alerts import Scorer, build_queue, model_dir
 from fraud.config import data_paths, load_config
-from fraud.cost import Costs, best_threshold, cost_curve, outcome
+from fraud.cost import Costs, best_threshold, cost_curve, flag_by_expected_loss, outcome
 from fraud.data import load_split
 
 st.set_page_config(page_title="Fraud alert queue", layout="wide")
@@ -80,14 +79,19 @@ scorer, raw, proba = load_scored(dataset)
 amt = {s: raw[s]["TransactionAmt"].to_numpy(dtype=float) for s in raw}
 y = {s: raw[s]["isFraud"].to_numpy() for s in raw}
 threshold = best_threshold(y["valid"], proba["valid"], amt["valid"], costs)
+if scorer.policy == "expected_loss":
+    flagged = flag_by_expected_loss(proba["test"], amt["test"], costs)
+    rule_text = "alert when probability x (amount + chargeback) exceeds the review cost"
+else:
+    flagged = proba["test"] >= threshold
+    rule_text = f"threshold {threshold:.4f}, chosen on the validation period to minimise total cost"
 
 # --------------------------------------------------------------------------- KPIs
 
-res = outcome(y["test"], proba["test"] >= threshold, amt["test"], costs)
+res = outcome(y["test"], flagged, amt["test"], costs)
 no_model = outcome(y["test"], np.zeros_like(y["test"]), amt["test"], costs)["total_cost"]
 st.title("Fraud alert queue")
-st.caption(f"{DATASETS[dataset]} · held-out test period · threshold {threshold:.4f}, "
-           "chosen on the validation period to minimise total cost")
+st.caption(f"{DATASETS[dataset]} · held-out test period · {rule_text}")
 
 k = st.columns(5)
 k[0].metric("Alerts", f"{res['alerts']:,}")
@@ -112,7 +116,7 @@ with st.expander("Why this threshold? Cost by threshold on the validation period
 
 # --------------------------------------------------------------------------- queue
 
-queue = build_queue(raw["test"], proba["test"], threshold, costs, dataset)
+queue = build_queue(raw["test"], proba["test"], flagged, costs, dataset)
 dec = decisions(dataset)
 queue = queue.merge(dec, how="left", left_on="TransactionID", right_on="transaction_id").drop(columns="transaction_id")
 queue["status"] = queue["status"].fillna("open")

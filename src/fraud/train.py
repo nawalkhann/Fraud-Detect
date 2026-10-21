@@ -27,11 +27,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from fraud.config import REPO_ROOT, load_config
-from fraud.cost import Costs, best_threshold, cost_curve, outcome
+from fraud.cost import Costs, best_threshold, cost_curve, decide, outcome
 from fraud.data import load_split
 from fraud.features import FeatureBuilder, label
 
 SPLITS = ("train", "valid", "test")
+POLICIES = ("default_0.5", "max_accuracy", "max_f1", "min_cost", "expected_loss")
+COST_POLICIES = ("min_cost", "expected_loss")
 LGB_PARAMS = {
     "ieee": dict(n_estimators=3000, learning_rate=0.03, num_leaves=256, max_depth=-1, min_child_samples=100,
                  subsample=0.8, subsample_freq=1, colsample_bytree=0.4, reg_lambda=1.0),
@@ -45,7 +47,7 @@ def fit_lightgbm(X_tr, y_tr, X_va, y_va, dataset: str, seed: int = 42) -> lgb.LG
     # alert queue both use p * dollars. Imbalance is handled by the cost-based threshold instead.
     model = lgb.LGBMClassifier(objective="binary", random_state=seed, n_jobs=-1, verbose=-1,
                                **LGB_PARAMS[dataset])
-    model.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], eval_metric="average_precision",
+    model.fit(X_tr, y_tr, eval_set=[(X_va, y_va)], eval_metric="binary_logloss",
               callbacks=[lgb.early_stopping(200, first_metric_only=True, verbose=False)])
     return model
 
@@ -63,8 +65,7 @@ def ranking_metrics(y, p) -> dict:
             "brier": brier_score_loss(y, p), "log_loss": log_loss(y, np.clip(p, 1e-7, 1 - 1e-7))}
 
 
-def threshold_metrics(y, p, amount, t, costs: Costs) -> dict:
-    flag = p >= t
+def threshold_metrics(y, flag, amount, t, costs: Costs) -> dict:
     return {"threshold": t, "accuracy": accuracy_score(y, flag),
             "precision": precision_score(y, flag, zero_division=0), "recall": recall_score(y, flag),
             "f1": f1_score(y, flag, zero_division=0), **outcome(y, flag, amount, costs)}
@@ -129,14 +130,22 @@ def run(cfg: dict, dataset: str, out_root=REPO_ROOT) -> dict:
         for s in SPLITS:
             rank_rows.append({"model": m, "split": s, **ranking_metrics(y[s], proba[m][s])})
         chosen[m] = pick_thresholds(y["valid"], proba[m]["valid"], amt["valid"], costs)
-        for policy, t in chosen[m].items():
-            thr_rows.append({"model": m, "policy": policy,
-                             **threshold_metrics(y["test"], proba[m]["test"], amt["test"], t, costs)})
+        valid_cost = {}
+        for policy in POLICIES:
+            t = chosen[m].get(policy)
+            fv = decide(proba[m]["valid"], amt["valid"], costs, policy, chosen[m])
+            valid_cost[policy] = outcome(y["valid"], fv, amt["valid"], costs)["total_cost"]
+            ft = decide(proba[m]["test"], amt["test"], costs, policy, chosen[m])
+            thr_rows.append({"model": m, "policy": policy, "valid_total_cost": valid_cost[policy],
+                             **threshold_metrics(y["test"], ft, amt["test"], t, costs)})
+        # the policy served in production is whichever cost-based rule was cheaper on valid
+        chosen[m]["production_policy"] = min(COST_POLICIES, key=valid_cost.get)
     rank = pd.DataFrame(rank_rows).set_index(["model", "split"])
     thr = pd.DataFrame(thr_rows).set_index(["model", "policy"])
 
     no_model = outcome(y["test"], np.zeros_like(y["test"]), amt["test"], costs)["total_cost"]
-    best = thr.loc[("lightgbm", "min_cost")]
+    policy = chosen["lightgbm"]["production_policy"]
+    best = thr.loc[("lightgbm", policy)]
     curve = cost_curve(y["test"], proba["lightgbm"]["test"], amt["test"], costs)
     (out_root / "reports").mkdir(parents=True, exist_ok=True)
     curve.to_csv(out_root / "reports" / f"cost_curve_{dataset}.csv", index=False)
@@ -150,12 +159,15 @@ def run(cfg: dict, dataset: str, out_root=REPO_ROOT) -> dict:
         f"every alert = ${costs.review_cost:.0f} review; false alarm friction = ${costs.friction_cost:.0f}.",
         f"Test set: {len(y['test']):,} transactions, {int(y['test'].sum()):,} frauds "
         f"(${amt['test'][y['test'] == 1].sum():,.0f}). Thresholds are chosen on valid and applied unchanged to test.", "",
-        "## Headline (LightGBM, cost-optimal threshold, test split)",
+        "Policies: `min_cost` is the single threshold with the lowest validation cost; `expected_loss` alerts when "
+        "p x (amount + chargeback) > review cost, so the bar drops as the amount at risk grows. "
+        "The production policy is whichever of the two was cheaper on validation.", "",
+        f"## Headline (LightGBM, `{policy}` policy, test split)",
         f"- Total cost **${best.total_cost:,.0f}** vs **${no_model:,.0f}** with no model "
         f"({1 - best.total_cost / no_model:.1%} saved).",
-        f"- Catches {best.recall:.1%} of frauds ({best.tp:,} of {best.tp + best.fn:,}), "
+        f"- Catches {best.recall:.1%} of frauds ({int(best.tp):,} of {int(best.tp + best.fn):,}), "
         f"{best.fraud_dollars_caught / max(best.fraud_dollars_caught + best.fraud_dollars_missed, 1):.1%} of fraud dollars, "
-        f"with {best.alerts:,} alerts ({best.precision:.1%} of alerts are fraud).",
+        f"with {int(best.alerts):,} alerts ({best.precision:.1%} of alerts are fraud).",
         f"- Best LightGBM iteration: {models['lightgbm'].best_iteration_}.", "",
         "## Ranking quality and overfitting check (train vs valid vs test)",
         "PR-AUC is the main metric under heavy imbalance. A large train-test gap means overfitting.", "",
@@ -163,7 +175,8 @@ def run(cfg: dict, dataset: str, out_root=REPO_ROOT) -> dict:
         "## Error at each threshold policy (test split)",
         "`max_accuracy` shows why accuracy misleads: it barely flags anything.", "",
         _fmt(thr[["threshold", "accuracy", "precision", "recall", "f1", "alerts", "tp", "fp", "fn",
-                  "fraud_dollars_missed", "total_cost"]]), "",
+                  "fraud_dollars_missed", "valid_total_cost", "total_cost"]].astype(
+                      {c: "Int64" for c in ("alerts", "tp", "fp", "fn")})), "",
         "## Top features (LightGBM gain)", "", _fmt(importance), "",
     ]
     report = out_root / "reports" / f"model_report_{dataset}.md"

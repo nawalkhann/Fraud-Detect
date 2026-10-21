@@ -15,8 +15,9 @@ def test_queue_is_ranked_by_expected_loss(trained_ulb):
     scorer = Scorer.load("ulb")
     test = load_split(cfg, "test", dataset="ulb")
     p = scorer.score(test)
-    q = build_queue(test, p, scorer.thresholds["min_cost"], Costs(), "ulb")
-    assert len(q) == (p >= scorer.thresholds["min_cost"]).sum()
+    flagged = scorer.decide(p, test["TransactionAmt"].to_numpy(dtype=float), Costs())
+    q = build_queue(test, p, flagged, Costs(), "ulb")
+    assert len(q) == flagged.sum()
     assert q["expected_loss"].is_monotonic_decreasing
     assert q["priority"].tolist() == list(range(1, len(q) + 1))
     reasons = scorer.reasons(test.head(3))

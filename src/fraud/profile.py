@@ -35,7 +35,10 @@ def psi(expected: pd.Series, actual: pd.Series, bins: int = 10) -> float:
 
 
 def _md(df: pd.DataFrame, floatfmt: str = ".4f") -> str:
-    return df.to_markdown(floatfmt=floatfmt)
+    # whole-number columns (counts, days, dollars) print without decimals
+    whole = {c: "Int64" for c in df.columns
+             if pd.api.types.is_numeric_dtype(df[c]) and df[c].notna().all() and (df[c] % 1 == 0).all()}
+    return df.astype(whole).to_markdown(floatfmt=floatfmt)
 
 
 TITLES = {"ieee": "IEEE-CIS (Vesta e-commerce)", "ulb": "ULB (European card transactions)"}
@@ -65,7 +68,7 @@ def build_report(splits: dict[str, pd.DataFrame], dataset: str = "ieee") -> str:
     split_tbl = df.groupby("split", sort=False).agg(
         rows=("isFraud", "size"), frauds=("isFraud", "sum"), fraud_rate=("isFraud", "mean"),
         **{f"first_{unit}": (unit, "min"), f"last_{unit}": (unit, "max")},
-        fraud_dollars=("TransactionAmt", lambda s: s[df.loc[s.index, "isFraud"] == 1].sum()),
+        fraud_dollars=("TransactionAmt", lambda s: round(float(s[df.loc[s.index, "isFraud"] == 1].sum()))),
     )
     out += ["## Out-of-time splits", _md(split_tbl), ""]
 

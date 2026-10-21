@@ -6,3 +6,5 @@ __pycache__/
 models/
 deploy/ulb_data.json
 deploy/fraud-alert-queue.html
+deploy/alert_queue_template.html
+deploy/export_dashboard.py

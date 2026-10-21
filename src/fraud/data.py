@@ -68,7 +68,7 @@ def load_joined(paths: Paths) -> pd.DataFrame:
     # Identity rows exist for only a subset of transactions; keep every transaction.
     df = tx.merge(idn, on="TransactionID", how="left", validate="one_to_one")
     df["has_identity"] = df["TransactionID"].isin(idn["TransactionID"]).astype(np.int8)
-    return _downcast(df)
+    return _downcast(df).copy()  # defragment after per-column casts
 
 
 def add_time_columns(df: pd.DataFrame, reference_date: str) -> pd.DataFrame:

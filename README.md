@@ -14,6 +14,16 @@ The columns differ, so each gets its own model; both are mapped to the same core
 dashboard code is shared. Kaggle's IEEE-CIS test file has no labels, so the test set for each
 dataset is its final, held-out time slice.
 
+## Results (held-out test period, LightGBM, amount-aware cost rule)
+| Dataset | Test period | Frauds caught | Fraud $ caught | Alerts | Alert precision | Total cost | No model | Saved |
+|---|---|---|---|---|---|---|---|---|
+| IEEE-CIS | last month (days 152-182) | 2,131 of 3,114 (68%) | 83% | 8,943 | 24% | $138,481 | $524,066 | 74% |
+| ULB | last 9 hours | 68 of 89 (76%) | 74% | 149 | 46% | $3,467 | $10,736 | 68% |
+
+Costs: missed fraud = amount + $15 chargeback; every alert = $5 analyst review. On IEEE-CIS the
+amount-aware rule beats the best single threshold ($172,751) and the 0.5 cut-off ($409,060), and
+the accuracy-maximising cut-off catches only 45% of fraud. Full tables: `reports/model_report_*.md`.
+
 ## Why this is hard
 - **Imbalance:** about 3.5% of transactions are fraud, so a model that predicts "legit" for everything is 96.5% accurate and useless. We evaluate with PR-AUC and dollars.
 - **Asymmetric cost:** a missed fraud loses the transaction amount plus a chargeback fee; a false alarm costs an analyst review. The threshold is chosen to minimise total cost (see `configs/default.yaml`).

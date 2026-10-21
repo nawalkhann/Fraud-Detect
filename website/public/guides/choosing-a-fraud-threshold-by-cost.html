@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Choose a Fraud Detection Threshold by Cost | Fraud Detect</title>
+<meta name="description" content="A practical guide to setting a fraud alert threshold from business costs: the expected-loss rule, why 0.5 is wrong, and real results on IEEE-CIS data.">
+<meta name="keywords" content="fraud detection threshold, cost-sensitive classification, expected loss, decision threshold, chargeback cost, alert review cost">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://fraud-detect-ml.vercel.app/guides/choosing-a-fraud-threshold-by-cost">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Fraud Detect">
+<meta property="og:title" content="How to Choose a Fraud Detection Threshold by Cost | Fraud Detect">
+<meta property="og:description" content="A practical guide to setting a fraud alert threshold from business costs: the expected-loss rule, why 0.5 is wrong, and real results on IEEE-CIS data.">
+<meta property="og:url" content="https://fraud-detect-ml.vercel.app/guides/choosing-a-fraud-threshold-by-cost">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0f6b5c">
+<!--GSC-->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fbfaf7;--fg:#1d2128;--muted:#5b6270;--line:#e3e0d8;--card:#fff;--accent:#0f6b5c;--accent2:#b5462f;--code:#f1efe9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e8e6e1;--muted:#a3a8b2;--line:#2c313a;--card:#1b1f26;--accent:#4fc0a8;--accent2:#e8826b;--code:#222730}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}a:hover{text-decoration-thickness:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+header{border-bottom:1px solid var(--line);background:var(--card)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding-top:12px;padding-bottom:12px}
+.brand{font-weight:700;text-decoration:none;color:var(--fg);font-size:18px;display:flex;align-items:center;gap:8px}
+nav{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:15px}nav a{text-decoration:none;color:var(--muted);padding:6px 0}
+nav a[aria-current]{color:var(--fg);font-weight:600}
+main{padding:28px 0 48px}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.2;margin:8px 0 12px}
+h2{font-size:24px;line-height:1.3;margin:36px 0 10px}h3{font-size:19px;margin:24px 0 6px}
+.lede{font-size:19px;color:var(--muted);margin-top:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font-size:28px;line-height:1.2;color:var(--accent)}.stat span{font-size:14px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:var(--fg);display:block}
+.card strong{color:var(--accent)}.card p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}thead th{background:var(--code);font-weight:600}tr:last-child td{border-bottom:0}
+tr.hl td{font-weight:600;color:var(--accent)}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:14px;border-radius:8px;overflow-x:auto;font-size:14px;line-height:1.5}
+.note{border-left:3px solid var(--accent2);padding:4px 14px;color:var(--muted);margin:16px 0}
+ol.steps{padding-left:22px}ol.steps li{margin:8px 0}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:20px 0 32px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}
+.calc .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.calc .stat b{font-size:22px}.calc label{font-weight:600;display:block;margin:8px 0 4px}.calc input[type=range]{width:100%}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{font:inherit;padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;min-height:40px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+svg.chart{width:100%;height:auto;display:block;margin-top:12px}
+.breadcrumb{font-size:14px;color:var(--muted)}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "How to Choose a Fraud Detection Threshold by Cost", "description": "A practical guide to setting a fraud alert threshold from business costs: the expected-loss rule, why 0.5 is wrong, and real results on IEEE-CIS data.", "datePublished": "2026-10-21", "dateModified": "2026-10-21", "mainEntityOfPage": "https://fraud-detect-ml.vercel.app/guides/choosing-a-fraud-threshold-by-cost", "author": {"@type": "Person", "name": "Nawal", "url": "https://github.com/nawalkhann"}}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://fraud-detect-ml.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Guides", "item": "https://fraud-detect-ml.vercel.app/guides"}, {"@type": "ListItem", "position": 3, "name": "How to Choose a Fraud Detection Threshold by Cost", "item": "https://fraud-detect-ml.vercel.app/guides/choosing-a-fraud-threshold-by-cost"}]}</script>
+</head>
+<body>
+<header><div class="wrap"><a class="brand" href="/"><svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0f6b5c"/><path d="M9 21l5-6 4 4 6-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Fraud Detect</a><nav aria-label="Main"><a href="/">Home</a><a href="/how-it-works">How it works</a><a href="/results">Results</a><a href="/threshold-calculator">Threshold calculator</a><a href="/guides" aria-current=page>Guides</a><a href="/about">About</a></nav></div></header>
+<main><div class="wrap">
+<p class="breadcrumb"><a href="/">Home</a> / <a href="/guides">Guides</a> / How to Choose a Fraud Detection Threshold by Cost</p>
+<h1>How to choose a fraud detection threshold by cost</h1>
+<p class="lede">A fraud model outputs a probability. Turning it into a yes-or-no alert is a business decision, and the default 0.5 is almost never right.</p>
+<h2>Start with what each mistake costs</h2>
+<ul>
+<li><strong>Missed fraud (false negative):</strong> you lose the transaction amount and pay a chargeback fee. This project uses amount + $15.</li>
+<li><strong>Alert (true or false positive):</strong> an analyst spends time reviewing it. This project uses $5.</li>
+<li><strong>False alarm friction:</strong> optionally, the cost of annoying a good customer. Set to $0 here, but worth adding if you block payments rather than review them.</li>
+</ul>
+<h2>Option 1: the cheapest single threshold</h2>
+<p>Score the validation period, try every cut-off from 0 to 1, add up the cost at each, and keep the cheapest. On IEEE-CIS this landed at
+0.014, far below 0.5, because missing an average $150 fraud is about 30 times more expensive than a review. On the test month it cost
+$172,751 against $409,060 for the 0.5 cut-off. You can try this yourself in the <a href="/threshold-calculator">threshold calculator</a>.</p>
+<h2>Option 2: the expected-loss rule</h2>
+<p>A single threshold treats a $5 purchase and a $5,000 purchase the same. The expected-loss rule alerts when the expected cost of letting the
+transaction through is higher than the cost of reviewing it:</p>
+<pre>alert if  p × (amount + chargeback)  &gt;  review cost + (1 − p) × friction</pre>
+<p>With a $5 review and $15 chargeback, a $10 order needs a fraud probability above 20% to be reviewed, while a $1,000 order needs only
+0.5%. On the IEEE-CIS test month this rule cost <strong>$138,481</strong>, 20% less than the best single threshold, with roughly half the alerts.</p>
+<h2>Two things that make it work</h2>
+<ol class="steps">
+<li><strong>Calibrated probabilities.</strong> The rule multiplies the probability by dollars, so the probability has to mean what it says. Avoid heavy class reweighting, or recalibrate afterwards.</li>
+<li><strong>Choose on validation, report on test.</strong> On the small ULB set, the best validation threshold did worse on test than the 0.5 cut-off. Pick the policy by validation cost and accept the test result, rather than tuning to the test set.</li>
+</ol>
+<h2>When to revisit the threshold</h2>
+<p>Recompute when costs change (a new chargeback fee, more analysts), when the fraud rate moves, or when a drift check fires. This project's
+drift job compares feature distributions and the mean score with a training reference, using the population stability index.</p>
+<p>See <a href="/how-it-works">how the whole pipeline fits together</a> or the <a href="/results">results for every policy</a>.</p>
+</div></main>
+<footer><div class="wrap"><span>Fraud Detect: cost-sensitive fraud detection on real transaction data.</span>
+<span><a href="https://github.com/nawalkhann/fraud-detect">Source code on GitHub</a> · <a href="/about">About the data</a> · <a href="/sitemap.xml">Sitemap</a></span></div></footer>
+</body>
+</html>

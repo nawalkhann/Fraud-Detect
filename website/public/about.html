@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About Fraud Detect: IEEE-CIS and ULB Credit Card Fraud Data</title>
+<meta name="description" content="About the Fraud Detect project: the IEEE-CIS (Vesta) and ULB credit card fraud datasets, source code, assumptions and limitations.">
+<meta name="keywords" content="IEEE-CIS dataset, ULB credit card fraud dataset, Vesta fraud data, fraud detection project, open source fraud detection">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://fraud-detect-ml.vercel.app/about">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Fraud Detect">
+<meta property="og:title" content="About Fraud Detect: IEEE-CIS and ULB Credit Card Fraud Data">
+<meta property="og:description" content="About the Fraud Detect project: the IEEE-CIS (Vesta) and ULB credit card fraud datasets, source code, assumptions and limitations.">
+<meta property="og:url" content="https://fraud-detect-ml.vercel.app/about">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0f6b5c">
+<!--GSC-->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fbfaf7;--fg:#1d2128;--muted:#5b6270;--line:#e3e0d8;--card:#fff;--accent:#0f6b5c;--accent2:#b5462f;--code:#f1efe9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e8e6e1;--muted:#a3a8b2;--line:#2c313a;--card:#1b1f26;--accent:#4fc0a8;--accent2:#e8826b;--code:#222730}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}a:hover{text-decoration-thickness:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+header{border-bottom:1px solid var(--line);background:var(--card)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding-top:12px;padding-bottom:12px}
+.brand{font-weight:700;text-decoration:none;color:var(--fg);font-size:18px;display:flex;align-items:center;gap:8px}
+nav{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:15px}nav a{text-decoration:none;color:var(--muted);padding:6px 0}
+nav a[aria-current]{color:var(--fg);font-weight:600}
+main{padding:28px 0 48px}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.2;margin:8px 0 12px}
+h2{font-size:24px;line-height:1.3;margin:36px 0 10px}h3{font-size:19px;margin:24px 0 6px}
+.lede{font-size:19px;color:var(--muted);margin-top:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font-size:28px;line-height:1.2;color:var(--accent)}.stat span{font-size:14px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:var(--fg);display:block}
+.card strong{color:var(--accent)}.card p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}thead th{background:var(--code);font-weight:600}tr:last-child td{border-bottom:0}
+tr.hl td{font-weight:600;color:var(--accent)}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:14px;border-radius:8px;overflow-x:auto;font-size:14px;line-height:1.5}
+.note{border-left:3px solid var(--accent2);padding:4px 14px;color:var(--muted);margin:16px 0}
+ol.steps{padding-left:22px}ol.steps li{margin:8px 0}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:20px 0 32px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}
+.calc .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.calc .stat b{font-size:22px}.calc label{font-weight:600;display:block;margin:8px 0 4px}.calc input[type=range]{width:100%}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{font:inherit;padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;min-height:40px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+svg.chart{width:100%;height:auto;display:block;margin-top:12px}
+.breadcrumb{font-size:14px;color:var(--muted)}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://fraud-detect-ml.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "About", "item": "https://fraud-detect-ml.vercel.app/about"}]}</script>
+</head>
+<body>
+<header><div class="wrap"><a class="brand" href="/"><svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0f6b5c"/><path d="M9 21l5-6 4 4 6-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Fraud Detect</a><nav aria-label="Main"><a href="/">Home</a><a href="/how-it-works">How it works</a><a href="/results">Results</a><a href="/threshold-calculator">Threshold calculator</a><a href="/guides">Guides</a><a href="/about" aria-current=page>About</a></nav></div></header>
+<main><div class="wrap">
+<p class="breadcrumb"><a href="/">Home</a> / About</p>
+<h1>About the project and the data</h1>
+<p>Fraud Detect is an open-source portfolio project by <a href="https://github.com/nawalkhann">Nawal</a>, built to show
+what an end-to-end fraud detection system looks like on real data: honest out-of-time evaluation, decisions driven by cost,
+explanations for analysts and the engineering needed to run it.</p>
+<h2>Datasets</h2>
+<h3>IEEE-CIS Fraud Detection</h3>
+<p>Real e-commerce transactions provided by Vesta Corporation for the IEEE Computational Intelligence Society
+<a href="https://www.kaggle.com/c/ieee-fraud-detection">Kaggle competition</a>. 590,540 labelled transactions, 3.5% fraud, joined with an identity
+table. This site shows only aggregate results from it; no transaction-level data is published.</p>
+<h3>ULB Credit Card Fraud</h3>
+<p>284,807 transactions made by European cardholders over two days in September 2013, released by the Machine Learning Group of the
+Université Libre de Bruxelles (<a href="https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud">dataset page</a>). 492 frauds (0.17%).
+Features V1 to V28 are PCA components; only time and amount are in their original form.</p>
+<h2>Source code</h2>
+<p>The full pipeline, tests, Dockerfile and CI configuration are on <a href="https://github.com/nawalkhann/fraud-detect">GitHub</a>. To reproduce the results, download both
+datasets, then run <code>make data</code>, <code>make data-ulb</code> and <code>make train</code>.</p>
+<h2>Limitations</h2>
+<ul>
+<li>The cost figures ($15 chargeback, $5 review) are assumptions; change them in <code>configs/default.yaml</code> to match a real business.</li>
+<li>The IEEE-CIS model overfits (train PR-AUC 0.99, test 0.57).</li>
+<li>The ULB test period has only 89 frauds, so differences of a few hundred dollars between policies are noise.</li>
+</ul>
+</div></main>
+<footer><div class="wrap"><span>Fraud Detect: cost-sensitive fraud detection on real transaction data.</span>
+<span><a href="https://github.com/nawalkhann/fraud-detect">Source code on GitHub</a> · <a href="/about">About the data</a> · <a href="/sitemap.xml">Sitemap</a></span></div></footer>
+</body>
+</html>

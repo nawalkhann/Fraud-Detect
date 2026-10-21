@@ -1,7 +1,7 @@
 PY ?= python3
 export PYTHONPATH := src
 
-.PHONY: install test data data-ulb report train serve dashboard drift docker
+.PHONY: install test data data-ulb report train serve dashboard drift docker website
 
 install:
 	$(PY) -m pip install -e ".[dev]"
@@ -36,3 +36,6 @@ drift:           ## BATCH=recent.parquet DATASET=ieee|ulb; exits 1 on drift
 
 docker:
 	docker compose up --build
+
+website:
+	python3 website/build.py

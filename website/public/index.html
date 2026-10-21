@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fraud Detect: Cost-Sensitive Fraud Detection with Machine Learning</title>
+<meta name="description" content="End-to-end fraud detection on real IEEE-CIS and ULB credit card data. LightGBM, cost-based thresholds, explainable alerts, FastAPI and drift monitoring. Saves 74% of fraud losses.">
+<meta name="keywords" content="fraud detection, machine learning fraud detection, credit card fraud detection, IEEE-CIS fraud, cost-sensitive learning, LightGBM, fraud alert queue, imbalanced classification">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://fraud-detect-ml.vercel.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Fraud Detect">
+<meta property="og:title" content="Fraud Detect: Cost-Sensitive Fraud Detection with Machine Learning">
+<meta property="og:description" content="End-to-end fraud detection on real IEEE-CIS and ULB credit card data. LightGBM, cost-based thresholds, explainable alerts, FastAPI and drift monitoring. Saves 74% of fraud losses.">
+<meta property="og:url" content="https://fraud-detect-ml.vercel.app/">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0f6b5c">
+<!--GSC-->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fbfaf7;--fg:#1d2128;--muted:#5b6270;--line:#e3e0d8;--card:#fff;--accent:#0f6b5c;--accent2:#b5462f;--code:#f1efe9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e8e6e1;--muted:#a3a8b2;--line:#2c313a;--card:#1b1f26;--accent:#4fc0a8;--accent2:#e8826b;--code:#222730}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}a:hover{text-decoration-thickness:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+header{border-bottom:1px solid var(--line);background:var(--card)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding-top:12px;padding-bottom:12px}
+.brand{font-weight:700;text-decoration:none;color:var(--fg);font-size:18px;display:flex;align-items:center;gap:8px}
+nav{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:15px}nav a{text-decoration:none;color:var(--muted);padding:6px 0}
+nav a[aria-current]{color:var(--fg);font-weight:600}
+main{padding:28px 0 48px}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.2;margin:8px 0 12px}
+h2{font-size:24px;line-height:1.3;margin:36px 0 10px}h3{font-size:19px;margin:24px 0 6px}
+.lede{font-size:19px;color:var(--muted);margin-top:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font-size:28px;line-height:1.2;color:var(--accent)}.stat span{font-size:14px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:var(--fg);display:block}
+.card strong{color:var(--accent)}.card p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}thead th{background:var(--code);font-weight:600}tr:last-child td{border-bottom:0}
+tr.hl td{font-weight:600;color:var(--accent)}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:14px;border-radius:8px;overflow-x:auto;font-size:14px;line-height:1.5}
+.note{border-left:3px solid var(--accent2);padding:4px 14px;color:var(--muted);margin:16px 0}
+ol.steps{padding-left:22px}ol.steps li{margin:8px 0}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:20px 0 32px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}
+.calc .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.calc .stat b{font-size:22px}.calc label{font-weight:600;display:block;margin:8px 0 4px}.calc input[type=range]{width:100%}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{font:inherit;padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;min-height:40px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+svg.chart{width:100%;height:auto;display:block;margin-top:12px}
+.breadcrumb{font-size:14px;color:var(--muted)}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebSite", "name": "Fraud Detect", "url": "https://fraud-detect-ml.vercel.app/"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareSourceCode", "name": "Fraud Detect", "codeRepository": "https://github.com/nawalkhann/fraud-detect", "programmingLanguage": "Python", "description": "Cost-sensitive fraud detection pipeline on real data.", "author": {"@type": "Person", "name": "Nawal", "url": "https://github.com/nawalkhann"}}</script>
+</head>
+<body>
+<header><div class="wrap"><a class="brand" href="/"><svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0f6b5c"/><path d="M9 21l5-6 4 4 6-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Fraud Detect</a><nav aria-label="Main"><a href="/" aria-current=page>Home</a><a href="/how-it-works">How it works</a><a href="/results">Results</a><a href="/threshold-calculator">Threshold calculator</a><a href="/guides">Guides</a><a href="/about">About</a></nav></div></header>
+<main><div class="wrap">
+<h1>Fraud detection that minimises cost, not just errors</h1>
+<p class="lede">An end-to-end machine learning system trained on two real, labelled transaction datasets. It picks who to alert
+by the dollars at risk, explains every alert, and ships with a scoring API, an analyst queue, CI and drift monitoring.</p>
+<div class="stats">
+<div class="stat"><b>74%</b><span>fraud losses saved on the IEEE-CIS test month vs no model</span></div>
+<div class="stat"><b>83%</b><span>of fraud dollars caught on unseen e-commerce data</span></div>
+<div class="stat"><b>0.917</b><span>ROC-AUC on the held-out month (PR-AUC 0.573)</span></div>
+<div class="stat"><b>875k</b><span>real transactions across two public datasets</span></div>
+</div>
+<h2>What this project does</h2>
+<p>Card and e-commerce fraud is rare (3.5% of transactions in IEEE-CIS, 0.17% in the ULB card data), so a model that
+predicts "not fraud" for everything is over 96% accurate and catches nothing. This project treats fraud detection as a cost
+problem instead. A missed fraud costs the transaction amount plus a $15 chargeback fee, and every alert costs $5 of analyst
+time. The model scores each transaction, and the system alerts only when the expected loss is larger than the cost of
+reviewing it.</p>
+<p>Everything is evaluated out of time: the model trains on earlier months, is tuned on the next month and is reported on a
+final month it has never seen, which is how fraud models actually meet new data in production.</p>
+<div class="cards">
+<a class="card" href="/how-it-works"><strong>How it works</strong><p>Data, out-of-time splits, features, LightGBM, the cost rule, the API and monitoring.</p></a>
+<a class="card" href="/results"><strong>Results</strong><p>Accuracy, precision, recall, PR-AUC and dollars for every threshold policy on both datasets.</p></a>
+<a class="card" href="/threshold-calculator"><strong>Threshold calculator</strong><p>Move the cut-off and watch alerts, frauds caught and total cost change on the real test month.</p></a>
+<a class="card" href="/guides/why-accuracy-fails-for-fraud-detection"><strong>Why accuracy fails</strong><p>A plain-language guide to evaluating models on imbalanced fraud data.</p></a>
+</div>
+<h2>Built like a production system</h2>
+<ul>
+<li><strong>Two real datasets:</strong> IEEE-CIS (590,540 Vesta e-commerce transactions) and ULB (284,807 European card transactions).</li>
+<li><strong>Models:</strong> LightGBM against a logistic regression baseline, with train, validation and test metrics to expose overfitting.</li>
+<li><strong>Decisions:</strong> an amount-aware expected-loss rule that beat every single fixed threshold on both datasets.</li>
+<li><strong>Explanations:</strong> the top three reasons for every alert, from SHAP values.</li>
+<li><strong>Serving:</strong> a FastAPI <code>/score</code> endpoint and a Streamlit alert queue for analysts.</li>
+<li><strong>Operations:</strong> Docker, GitHub Actions CI, a model registry file per run and a PSI drift check.</li>
+</ul>
+<p><a href="https://github.com/nawalkhann/fraud-detect">Read the source code on GitHub</a>.</p>
+</div></main>
+<footer><div class="wrap"><span>Fraud Detect: cost-sensitive fraud detection on real transaction data.</span>
+<span><a href="https://github.com/nawalkhann/fraud-detect">Source code on GitHub</a> · <a href="/about">About the data</a> · <a href="/sitemap.xml">Sitemap</a></span></div></footer>
+</body>
+</html>

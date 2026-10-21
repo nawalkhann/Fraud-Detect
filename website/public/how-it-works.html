@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the Fraud Detection Pipeline Works | Fraud Detect</title>
+<meta name="description" content="How the Fraud Detect pipeline works: out-of-time splits, customer features, LightGBM, an expected-loss alert rule, FastAPI scoring and PSI drift monitoring.">
+<meta name="keywords" content="fraud detection pipeline, out-of-time validation, feature engineering fraud, LightGBM fraud model, expected loss, FastAPI model serving, model drift PSI, MLOps">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://fraud-detect-ml.vercel.app/how-it-works">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Fraud Detect">
+<meta property="og:title" content="How the Fraud Detection Pipeline Works | Fraud Detect">
+<meta property="og:description" content="How the Fraud Detect pipeline works: out-of-time splits, customer features, LightGBM, an expected-loss alert rule, FastAPI scoring and PSI drift monitoring.">
+<meta property="og:url" content="https://fraud-detect-ml.vercel.app/how-it-works">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0f6b5c">
+<!--GSC-->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fbfaf7;--fg:#1d2128;--muted:#5b6270;--line:#e3e0d8;--card:#fff;--accent:#0f6b5c;--accent2:#b5462f;--code:#f1efe9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e8e6e1;--muted:#a3a8b2;--line:#2c313a;--card:#1b1f26;--accent:#4fc0a8;--accent2:#e8826b;--code:#222730}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}a:hover{text-decoration-thickness:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+header{border-bottom:1px solid var(--line);background:var(--card)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding-top:12px;padding-bottom:12px}
+.brand{font-weight:700;text-decoration:none;color:var(--fg);font-size:18px;display:flex;align-items:center;gap:8px}
+nav{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:15px}nav a{text-decoration:none;color:var(--muted);padding:6px 0}
+nav a[aria-current]{color:var(--fg);font-weight:600}
+main{padding:28px 0 48px}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.2;margin:8px 0 12px}
+h2{font-size:24px;line-height:1.3;margin:36px 0 10px}h3{font-size:19px;margin:24px 0 6px}
+.lede{font-size:19px;color:var(--muted);margin-top:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font-size:28px;line-height:1.2;color:var(--accent)}.stat span{font-size:14px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:var(--fg);display:block}
+.card strong{color:var(--accent)}.card p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}thead th{background:var(--code);font-weight:600}tr:last-child td{border-bottom:0}
+tr.hl td{font-weight:600;color:var(--accent)}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:14px;border-radius:8px;overflow-x:auto;font-size:14px;line-height:1.5}
+.note{border-left:3px solid var(--accent2);padding:4px 14px;color:var(--muted);margin:16px 0}
+ol.steps{padding-left:22px}ol.steps li{margin:8px 0}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:20px 0 32px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}
+.calc .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.calc .stat b{font-size:22px}.calc label{font-weight:600;display:block;margin:8px 0 4px}.calc input[type=range]{width:100%}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{font:inherit;padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;min-height:40px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+svg.chart{width:100%;height:auto;display:block;margin-top:12px}
+.breadcrumb{font-size:14px;color:var(--muted)}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "How the fraud detection pipeline works", "description": "How the Fraud Detect pipeline works: out-of-time splits, customer features, LightGBM, an expected-loss alert rule, FastAPI scoring and PSI drift monitoring.", "datePublished": "2026-10-21", "dateModified": "2026-10-21", "mainEntityOfPage": "https://fraud-detect-ml.vercel.app/how-it-works", "author": {"@type": "Person", "name": "Nawal", "url": "https://github.com/nawalkhann"}}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://fraud-detect-ml.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "How it works", "item": "https://fraud-detect-ml.vercel.app/how-it-works"}]}</script>
+</head>
+<body>
+<header><div class="wrap"><a class="brand" href="/"><svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0f6b5c"/><path d="M9 21l5-6 4 4 6-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Fraud Detect</a><nav aria-label="Main"><a href="/">Home</a><a href="/how-it-works" aria-current=page>How it works</a><a href="/results">Results</a><a href="/threshold-calculator">Threshold calculator</a><a href="/guides">Guides</a><a href="/about">About</a></nav></div></header>
+<main><div class="wrap">
+<p class="breadcrumb"><a href="/">Home</a> / How it works</p>
+<h1>How the fraud detection pipeline works</h1>
+<p class="lede">From raw transactions to a ranked alert queue, in six steps. Each step is a module in the repository and is covered by tests.</p>
+<h2>1. Real, labelled data</h2>
+<p><strong>IEEE-CIS</strong> holds 590,540 e-commerce transactions from Vesta over about six months, with more than 400 columns:
+amount, product code, card and address fields, email domains, device data, counting features (C1 to C14), time deltas (D1 to D15)
+and 339 engineered Vesta features. A separate identity table covers 24% of transactions, and those transactions have a fraud
+rate of 7.85% against 2.09% without one. <strong>ULB</strong> holds 284,807 European card transactions from two days in September 2013,
+whose 28 features are PCA components, so it tests whether the decision rule generalises to a very different fraud profile.</p>
+<h2>2. Out-of-time validation</h2>
+<p>Random train/test splits leak the future into training and overstate performance. Every split here is by time:</p>
+<ul>
+<li>IEEE-CIS: train on days 1 to 119, tune on days 120 to 151, report on days 152 to 182.</li>
+<li>ULB: train on hours 0 to 29, tune on hours 30 to 38, report on hours 39 to 47.</li>
+</ul>
+<p>Thresholds and policies are chosen on the validation period and applied unchanged to the test period.</p>
+<h2>3. Features fitted on training data only</h2>
+<p>Frequency encodings for high-cardinality fields such as <code>card1</code> and email domain, and a customer proxy built from card,
+address and the account-start date (<code>card1 + addr1 + (day − D1)</code>). Per-customer means and standard deviations of amount,
+distance and counting features let the model ask "is this unusual for this customer?" All statistics come from the training months,
+so no information leaks from the future.</p>
+<h2>4. LightGBM against a baseline</h2>
+<p>A gradient boosted tree model (LightGBM, early stopping on log loss, no class reweighting so probabilities stay calibrated)
+is compared with a regularised logistic regression. On IEEE-CIS the test PR-AUC is 0.573 for LightGBM against 0.164 for the
+baseline. Train PR-AUC is 0.99, so the model does overfit; the out-of-time test numbers are the honest ones.</p>
+<h2>5. A decision rule based on cost</h2>
+<p>A probability is not a decision. The production rule alerts on a transaction when</p>
+<pre>p(fraud) × (amount + chargeback fee)  &gt;  review cost</pre>
+<p>so a $2,000 order is reviewed at a much lower probability than a $10 one. With a $15 chargeback and a $5 review, this
+rule cost $138,481 on the test month against $172,751 for the best single threshold and $409,060 for the usual 0.5 cut-off.
+See it for yourself in the <a href="/threshold-calculator">threshold calculator</a> or read
+<a href="/guides/choosing-a-fraud-threshold-by-cost">how to choose a threshold by cost</a>.</p>
+<h2>6. Serving and monitoring</h2>
+<ul>
+<li><strong>Scoring API:</strong> FastAPI <code>POST /score</code> returns the probability, the alert decision, the expected loss and the top three reasons from SHAP values.</li>
+<li><strong>Alert queue:</strong> a Streamlit dashboard ranks alerts by expected loss, lets analysts change costs live and records confirm or dismiss decisions.</li>
+<li><strong>Model registry:</strong> each training run writes metadata with the git commit, costs, thresholds and test metrics.</li>
+<li><strong>Drift check:</strong> the population stability index and mean score shift against a training reference; the job exits non-zero when drift crosses the alert level.</li>
+<li><strong>Delivery:</strong> Docker and docker-compose for the API and dashboard, and GitHub Actions running the tests on every push.</li>
+</ul>
+<pre>make install
+make data &amp;&amp; make data-ulb
+make train      # writes reports/model_report_{ieee,ulb}.md
+make serve      # scoring API on :8000
+make dashboard  # analyst alert queue
+make drift BATCH=recent.parquet</pre>
+</div></main>
+<footer><div class="wrap"><span>Fraud Detect: cost-sensitive fraud detection on real transaction data.</span>
+<span><a href="https://github.com/nawalkhann/fraud-detect">Source code on GitHub</a> · <a href="/about">About the data</a> · <a href="/sitemap.xml">Sitemap</a></span></div></footer>
+</body>
+</html>

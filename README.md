@@ -3,6 +3,8 @@
 Cost-sensitive fraud detection on two real, labelled transaction datasets, with a decision threshold picked by business cost and an alert
 queue an analyst can work through.
 
+Live site: https://fraud-detect-ml.vercel.app (results, method, an interactive threshold calculator and guides; built by `make website`).
+
 ## Data
 | Dataset | What it is | Role |
 |---|---|---|
@@ -47,6 +49,7 @@ make serve                                  # scoring API: POST /score, GET /hea
 make dashboard                              # analyst alert queue
 make drift BATCH=recent.parquet              # drift check, non-zero exit on alert
 make docker                                 # API on :8000 and dashboard on :8501
+make website                                # rebuild the static site in website/public
 make test
 ```
 Each training run writes `models/<dataset>/metadata.json` (git sha, time, costs, test metrics)
@@ -66,5 +69,6 @@ src/fraud/api.py       FastAPI scoring service
 src/fraud/drift.py     PSI + score-shift drift check against the training reference (exit 1 on alert)
 app/dashboard.py       Streamlit alert queue: live cost sliders, cost curve, review + decisions (SQLite)
 src/fraud/profile.py   data report: fraud rates, amounts, missingness, drift (PSI)
+website/build.py       static project website (deployed from website/public)
 tests/                 unit tests on tiny files with the IEEE-CIS column layout
 ```

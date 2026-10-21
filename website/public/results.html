@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fraud Detection Model Results: Precision, Recall and Cost | Fraud Detect</title>
+<meta name="description" content="Test results for fraud detection on IEEE-CIS and ULB credit card data: precision, recall, PR-AUC, ROC-AUC and total cost for each threshold policy. 74% of losses saved.">
+<meta name="keywords" content="fraud detection results, fraud model accuracy, precision recall fraud, PR-AUC, ROC-AUC, IEEE-CIS results, credit card fraud detection accuracy, LightGBM vs logistic regression">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://fraud-detect-ml.vercel.app/results">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Fraud Detect">
+<meta property="og:title" content="Fraud Detection Model Results: Precision, Recall and Cost | Fraud Detect">
+<meta property="og:description" content="Test results for fraud detection on IEEE-CIS and ULB credit card data: precision, recall, PR-AUC, ROC-AUC and total cost for each threshold policy. 74% of losses saved.">
+<meta property="og:url" content="https://fraud-detect-ml.vercel.app/results">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#0f6b5c">
+<!--GSC-->
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+:root{--bg:#fbfaf7;--fg:#1d2128;--muted:#5b6270;--line:#e3e0d8;--card:#fff;--accent:#0f6b5c;--accent2:#b5462f;--code:#f1efe9}
+@media (prefers-color-scheme:dark){:root{--bg:#14171c;--fg:#e8e6e1;--muted:#a3a8b2;--line:#2c313a;--card:#1b1f26;--accent:#4fc0a8;--accent2:#e8826b;--code:#222730}}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent)}a:hover{text-decoration-thickness:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+header{border-bottom:1px solid var(--line);background:var(--card)}
+header .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding-top:12px;padding-bottom:12px}
+.brand{font-weight:700;text-decoration:none;color:var(--fg);font-size:18px;display:flex;align-items:center;gap:8px}
+nav{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:15px}nav a{text-decoration:none;color:var(--muted);padding:6px 0}
+nav a[aria-current]{color:var(--fg);font-weight:600}
+main{padding:28px 0 48px}
+h1{font-size:clamp(28px,5vw,40px);line-height:1.2;margin:8px 0 12px}
+h2{font-size:24px;line-height:1.3;margin:36px 0 10px}h3{font-size:19px;margin:24px 0 6px}
+.lede{font-size:19px;color:var(--muted);margin-top:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font-size:28px;line-height:1.2;color:var(--accent)}.stat span{font-size:14px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:var(--fg);display:block}
+.card strong{color:var(--accent)}.card p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.table{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}thead th{background:var(--code);font-weight:600}tr:last-child td{border-bottom:0}
+tr.hl td{font-weight:600;color:var(--accent)}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);padding:14px;border-radius:8px;overflow-x:auto;font-size:14px;line-height:1.5}
+.note{border-left:3px solid var(--accent2);padding:4px 14px;color:var(--muted);margin:16px 0}
+ol.steps{padding-left:22px}ol.steps li{margin:8px 0}
+footer{border-top:1px solid var(--line);color:var(--muted);font-size:14px;padding:20px 0 32px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:16px 0}
+.calc .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.calc .stat b{font-size:22px}.calc label{font-weight:600;display:block;margin:8px 0 4px}.calc input[type=range]{width:100%}
+.seg{display:flex;gap:8px;flex-wrap:wrap}.seg button{font:inherit;padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer;min-height:40px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+svg.chart{width:100%;height:auto;display:block;margin-top:12px}
+.breadcrumb{font-size:14px;color:var(--muted)}
+</style>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "Fraud detection model results", "description": "Test results for fraud detection on IEEE-CIS and ULB credit card data: precision, recall, PR-AUC, ROC-AUC and total cost for each threshold policy. 74% of losses saved.", "datePublished": "2026-10-21", "dateModified": "2026-10-21", "mainEntityOfPage": "https://fraud-detect-ml.vercel.app/results", "author": {"@type": "Person", "name": "Nawal", "url": "https://github.com/nawalkhann"}}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://fraud-detect-ml.vercel.app/"}, {"@type": "ListItem", "position": 2, "name": "Results", "item": "https://fraud-detect-ml.vercel.app/results"}]}</script>
+</head>
+<body>
+<header><div class="wrap"><a class="brand" href="/"><svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#0f6b5c"/><path d="M9 21l5-6 4 4 6-9" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>Fraud Detect</a><nav aria-label="Main"><a href="/">Home</a><a href="/how-it-works">How it works</a><a href="/results" aria-current=page>Results</a><a href="/threshold-calculator">Threshold calculator</a><a href="/guides">Guides</a><a href="/about">About</a></nav></div></header>
+<main><div class="wrap">
+<p class="breadcrumb"><a href="/">Home</a> / Results</p>
+<h1>Fraud detection results on real data</h1>
+<p class="lede">All numbers are on the final, held-out time period, using thresholds chosen on the period before it.
+Total cost = fraud dollars missed + $15 chargeback per missed fraud + $5 per alert reviewed.</p>
+<h2>IEEE-CIS: Vesta e-commerce, last month (89,326 transactions, 3,114 frauds)</h2>
+<div class="table"><table><thead><tr><th>Policy</th><th>Alerts</th><th>Frauds caught</th><th>Precision</th><th>Fraud $ missed</th><th>Total cost</th></tr></thead><tbody><tr class=hl><td>Expected-loss rule (production)</td><td>8,943</td><td>2,131 (68%)</td><td>24%</td><td>$79,021</td><td>$138,481</td></tr><tr><td>Best single threshold (0.014)</td><td>17,093</td><td>2,622 (84%)</td><td>15%</td><td>$79,906</td><td>$172,751</td></tr><tr><td>Max F1 threshold (0.19)</td><td>2,278</td><td>1,511 (49%)</td><td>66%</td><td>$323,788</td><td>$359,223</td></tr><tr><td>Max accuracy threshold (0.28)</td><td>1,849</td><td>1,386 (45%)</td><td>75%</td><td>$342,051</td><td>$377,216</td></tr><tr><td>Default 0.5 cut-off</td><td>1,344</td><td>1,140 (37%)</td><td>85%</td><td>$372,730</td><td>$409,060</td></tr><tr><td>No model</td><td>0</td><td>0 (0%)</td><td>–</td><td>$477,356</td><td>$524,066</td></tr></tbody></table></div>
+<p>The expected-loss rule saves 74% of the no-model cost and catches 83% of fraud dollars. It uses half the alerts of the best
+single threshold for a lower total cost, because it spends review time on the expensive transactions. The thresholds that
+maximise accuracy or F1 look better on paper and miss more than $320,000 of fraud.</p>
+<div class="table"><table><thead><tr><th>Model / split</th><th>ROC-AUC</th><th>PR-AUC</th><th>Brier</th><th>Log loss</th></tr></thead><tbody><tr><td>LightGBM train</td><td>0.9997</td><td>0.9941</td><td>0.0031</td><td>0.0155</td></tr><tr><td>LightGBM valid</td><td>0.9443</td><td>0.6758</td><td>0.0183</td><td>0.0743</td></tr><tr class=hl><td>LightGBM test</td><td>0.9168</td><td>0.5729</td><td>0.0212</td><td>0.0890</td></tr><tr><td>Logistic test</td><td>0.7999</td><td>0.1637</td><td>0.0421</td><td>0.3467</td></tr></tbody></table></div>
+<p class="note">The model overfits: train PR-AUC is 0.99 against 0.57 on the test month. The test numbers are the ones to trust, and
+the gap is the main thing to work on next (fewer V features, stronger regularisation, more customer history).</p>
+<h2>ULB: European card transactions, last 9 hours (68,567 transactions, 89 frauds)</h2>
+<div class="table"><table><thead><tr><th>Policy</th><th>Alerts</th><th>Frauds caught</th><th>Precision</th><th>Fraud $ missed</th><th>Total cost</th></tr></thead><tbody><tr class=hl><td>Expected-loss rule (production)</td><td>149</td><td>68 (76%)</td><td>46%</td><td>$2,407</td><td>$3,467</td></tr><tr><td>Best single threshold (0.006)</td><td>317</td><td>75 (84%)</td><td>24%</td><td>$2,375</td><td>$4,170</td></tr><tr><td>Max F1 threshold (0.27)</td><td>86</td><td>67 (75%)</td><td>78%</td><td>$2,644</td><td>$3,404</td></tr><tr><td>Max accuracy threshold (0.88)</td><td>51</td><td>51 (57%)</td><td>100%</td><td>$4,732</td><td>$5,557</td></tr><tr><td>Default 0.5 cut-off</td><td>75</td><td>67 (75%)</td><td>89%</td><td>$2,644</td><td>$3,349</td></tr><tr><td>No model</td><td>0</td><td>0 (0%)</td><td>–</td><td>$9,401</td><td>$10,736</td></tr></tbody></table></div>
+<p>The expected-loss rule was the cheapest policy on validation and saves 68% on test. On test the 0.5 cut-off came out $118 cheaper,
+which is within noise when there are only 89 frauds; the best single threshold from validation did worse ($4,170), which is why the
+production rule is chosen by validation cost rather than tuned to one number.</p>
+<div class="table"><table><thead><tr><th>Model / split</th><th>ROC-AUC</th><th>PR-AUC</th><th>Brier</th><th>Log loss</th></tr></thead><tbody><tr><td>LightGBM train</td><td>1.0000</td><td>0.9992</td><td>0.0001</td><td>0.0004</td></tr><tr><td>LightGBM valid</td><td>0.9868</td><td>0.7562</td><td>0.0003</td><td>0.0020</td></tr><tr class=hl><td>LightGBM test</td><td>0.9834</td><td>0.8017</td><td>0.0004</td><td>0.0025</td></tr><tr><td>Logistic test</td><td>0.9726</td><td>0.6528</td><td>0.0008</td><td>0.0038</td></tr></tbody></table></div>
+<h2>What drives the IEEE-CIS model</h2>
+<p>The strongest features by LightGBM gain are customer-level aggregates (<code>uid_C13_mean</code>, <code>uid_TransactionAmt_mean</code>,
+<code>uid_C13_std</code>), Vesta's engineered features <code>V257</code> and <code>V258</code>, the counting features <code>C1</code>,
+<code>C13</code> and <code>C14</code>, how common the card is (<code>card1_freq</code>) and the device string. Customer behaviour over time
+matters more than any single field on the transaction.</p>
+<p>Try other cut-offs in the <a href="/threshold-calculator">threshold calculator</a>, or see the full reports in the
+<a href="https://github.com/nawalkhann/fraud-detect/tree/main/reports">repository</a>.</p>
+</div></main>
+<footer><div class="wrap"><span>Fraud Detect: cost-sensitive fraud detection on real transaction data.</span>
+<span><a href="https://github.com/nawalkhann/fraud-detect">Source code on GitHub</a> · <a href="/about">About the data</a> · <a href="/sitemap.xml">Sitemap</a></span></div></footer>
+</body>
+</html>
